@@ -86,39 +86,46 @@ class SmoothCondition(nn.Module):
         # Thêm hàm Sigmoid để áp dụng cuối cùng sau khi điều kiện hóa Logits
         self.sigmoid = nn.Sigmoid() 
 
-    # ⭐️ Đầu vào x bây giờ là LOGITS (z)
-    # Output x vẫn là codes (x)
+    # Đầu vào x là LOGITS (z). Output x là Codes (x)
     def forward(self, x, lens, target_codes):
-        # 1. Tính Codes/Xác suất từ Logits (để MaskedAttention sử dụng)
+        
+        # 1. Tính Codes/Xác suất từ Logits (x) để MaskedAttention sử dụng
         codes_for_attention = self.sigmoid(x) 
-        # Giả định MaskedAttention vẫn cần đầu vào là Codes/Xác suất
         score = self.attention(codes_for_attention, lens) 
 
         # 2. Tạo score_tensor cùng kích thước với Logits (x)
         score_tensor = torch.zeros_like(x) 
         
-        # Sử dụng tuple indexing để gán điểm số chú ý
-        # Lấy chỉ số (batch_idx, time_step=0, target_code)
-        # Vì SmoothCondition được gọi trong vòng lặp GRU, đầu vào x chỉ có 2 chiều: (Batch_size, Code_Num)
-        # Tức là chỉ có 1 bước thời gian (time step)
+        # 3. Logic gán score vào vị trí target_codes (Xử lý 2D và 3D)
         
-        # Chúng ta cần điều chỉnh logic gán cho đầu vào (B, C)
-        
-        if x.dim() == 2: # Trường hợp khi gọi trong vòng lặp GRU: (B, C)
-            # score có shape (B,) vì chỉ có 1 bước thời gian
-            score_tensor[torch.arange(len(x)), target_codes.long()] = score
-        else: # Trường hợp gọi ban đầu hoặc nếu x có shape (B, T, C)
-            # Sử dụng logic gán cũ (giả định T=max_len)
-            b_idx = torch.arange(x.size(0)).unsqueeze(1).repeat(1, x.size(1))
-            t_idx = torch.arange(x.size(1)).unsqueeze(0).repeat(x.size(0), 1)
-            score_tensor[b_idx, t_idx, target_codes] = score
+        if x.dim() == 2: # Trường hợp 2D: (B, C) - Khi gọi trong vòng lặp GRU
+            # score có shape (B,), gán vào chiều (B, C)
+            score_tensor[torch.arange(len(x), device=x.device), target_codes.long()] = score
+            
+        else: # Trường hợp 3D: (B, T, C) - Khi gọi toàn bộ chuỗi (như trong Generator.forward)
+            
+            # Xử lý target_codes: Đảm bảo có shape (B, T)
+            if target_codes.dim() == 1:
+                # Nếu chỉ có (B), lặp lại thành (B, T)
+                target_codes_idx = target_codes.unsqueeze(1).repeat(1, x.size(1))
+            elif target_codes.dim() == 2:
+                # Nếu đã là (B, T), sử dụng trực tiếp
+                target_codes_idx = target_codes
+            else:
+                 raise ValueError(f"target_codes shape {target_codes.shape} không hợp lệ cho đầu vào 3D {x.shape}")
+                
+            # Tạo chỉ mục batch và time
+            b_idx = torch.arange(x.size(0), device=x.device).unsqueeze(1).repeat(1, x.size(1))
+            t_idx = torch.arange(x.size(1), device=x.device).unsqueeze(0).repeat(x.size(0), 1)
+            
+            # Gán score (shape: B, T) bằng chỉ mục 2D đã được lặp lại
+            score_tensor[b_idx, t_idx, target_codes_idx.long()] = score
 
-        # 3. ⭐️ Áp dụng phép cộng lên LOGITS (Pre-Activation Conditioning)
+        # 4. ⭐️ Áp dụng phép cộng lên LOGITS (Pre-Activation Conditioning)
         x = x + score_tensor
         
-        # 4. ⭐️ Áp dụng Sigmoid MƯỢT MÀ, giữ nguyên tên biến đầu ra x
+        # 5. ⭐️ Áp dụng Sigmoid MƯỢT MÀ và giữ nguyên tên biến đầu ra x
         x = self.sigmoid(x)
         
         # Loại bỏ torch.clip(x, max=1)
-        # Giữ nguyên tên biến đầu ra x
         return x
