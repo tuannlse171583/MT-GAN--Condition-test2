@@ -52,6 +52,8 @@ class SmoothCondition(nn.Module):
         
     def forward(self, x, lens, target_codes):
         # Tính trọng số chú ý (attention scores) theo chuỗi (masked)
+        target_codes = target_codes.to(x.device)
+
         score = self.attention(x, lens)            # shape: (B, T)
         # Lấy embedding của mã đích cho mỗi phần tử batch
         embed_vec = self.embedding(target_codes)   # shape: (B, embed_dim)
