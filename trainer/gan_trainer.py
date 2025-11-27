@@ -43,21 +43,22 @@ class GANTrainer:
         # ============================================================
         # BUILD FREQUENCY PER ICD FROM admission_codes.pkl
         # ============================================================
+        # ============================================================
+        # BUILD FREQUENCY PER ICD FROM codes_encoded.pkl
+        # ============================================================
         import pickle
         
-        # Load visit-level code IDs
-        with open("/kaggle/working/MT-GAN--Condition-test2/data/mimic3/parsed/admission_codes.pkl", "rb") as f:
-            admission_codes = pickle.load(f)
+        with open("/kaggle/working/MT-GAN--Condition-test2/data/mimic3/encoded/patient_admission.pkl", "rb") as f:
+            codes_encoded = pickle.load(f)
         
         freq_per_id = [0] * self.generator.code_num
         
-        # Count appearance per ICD ID
-        for visit in admission_codes:
-            for code_id in visit:
+        # codes_encoded: { admission_id: [code_id, code_id, ...] }
+        for adm_id, code_id_list in codes_encoded.items():
+            for code_id in code_id_list:
                 if code_id < self.generator.code_num:
                     freq_per_id[code_id] += 1
         
-        # Log rare ICD count
         rare_count = sum(1 for f in freq_per_id if f < 4)
         print(f"🔍 ICD xuất hiện < 4 lần: {rare_count} mã")
         
