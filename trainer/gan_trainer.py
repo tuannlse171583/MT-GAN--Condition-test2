@@ -2,6 +2,7 @@ from .generator_trainer import GeneratorTrainer
 from .critic_trainer import CriticTrainer
 from datautils.data_sampler import get_train_sampler
 from logger import Logger
+from rare_boost_sampler import RareBoostSampler
 
 
 class GANTrainer:
@@ -25,7 +26,8 @@ class GANTrainer:
                                        batch_size=args.batch_size, train_num=args.c_iter,
                                        lr=args.c_lr, lambda_=args.lambda_, betas=(args.betas0, args.betas1),
                                        decay_step=args.decay_step, decay_rate=args.decay_rate)
-        self.logger = Logger(records_path, generator, code_map, code_name_map, len_dist, train_loader.size, args.save_batch_size)
+        self.logger = Logger(records_path, generator, code_map, code_name_map,
+                             len_dist, train_loader.size, args.save_batch_size)
 
         self.test_freq = args.test_freq
         self.save_freq = args.save_freq
@@ -33,6 +35,24 @@ class GANTrainer:
         self.iters = args.iteration
         self.train_sampler = get_train_sampler(train_loader, self.device)
         self.batch_size = train_loader.batch_size
+
+        # ============================================================
+        # BUILD FREQUENCY PER ICD ID
+        # ============================================================
+        freq_per_id = [0] * self.generator.code_num
+
+        for patient in train_loader.dataset:
+            for visit in patient:
+                for idx, val in enumerate(visit):
+                    if val == 1:
+                        freq_per_id[idx] += 1
+
+        # Boost ICD xuất hiện < 4 lần
+        self.sampler = RareBoostSampler(freq_per_id, p_boost=0.2)
+
+        # Gán sampler vào Generator để get_target_codes() sử dụng
+        self.generator.sampler = self.sampler
+
 
     def train(self):
         for i in range(1, self.iters + 1):
@@ -58,11 +78,11 @@ class GANTrainer:
                 line = '{} / {} iterations: D_Loss -- {:.6f} -- G_Loss -- {:.6f} -- W_dist -- {:.6f}' \
                     .format(i, self.iters, d_loss, g_loss, w_distance)
                 print('\r' + line, end='')
+
             if i % self.save_freq == 0:
                 self.generator.save(self.params_path, 'generator.{}.pt'.format(i))
                 self.critic.save(self.params_path, 'critic.{}.pt'.format(i))
 
         self.generator.save(self.params_path)
         self.critic.save(self.params_path)
-
         self.logger.save()
