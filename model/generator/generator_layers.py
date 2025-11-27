@@ -37,33 +37,14 @@ class GRU(nn.Module):
 
 
 class SmoothCondition(nn.Module):
-    def __init__(self, code_num, attention_dim, embed_dim=None):
+    def __init__(self, code_num, attention_dim):
         super().__init__()
-        if embed_dim is None:
-            embed_dim = attention_dim  # dùng attention_dim làm kích thước embedding mặc định
         self.attention = MaskedAttention(code_num, attention_dim)
-        self.embedding = nn.Embedding(code_num, embed_dim)
-        # Chuyển đổi embedding thành vector điều kiện có cùng độ dài code_num
-        self.cond_transform = nn.Linear(embed_dim, code_num) if embed_dim != code_num else nn.Identity()
-        # Lớp tạo vector gating cho mỗi chiều đặc trưng dựa trên embedding của mã mục tiêu
-        self.gate_layer = nn.Linear(embed_dim, code_num)
-        # Tham số scale có thể học để điều chỉnh cường độ tín hiệu điều kiện
-        self.scale = nn.Parameter(torch.tensor(1.0))
-        
-    def forward(self, x, lens, target_codes):
-        # Tính trọng số chú ý (attention scores) theo chuỗi (masked)
-        target_codes = target_codes.to(x.device)
 
-        score = self.attention(x, lens)            # shape: (B, T)
-        # Lấy embedding của mã đích cho mỗi phần tử batch
-        embed_vec = self.embedding(target_codes)   # shape: (B, embed_dim)
-        # Tạo vector điều kiện từ embedding và chuẩn hóa về [0,1] (sigmoid) để tránh giá trị âm hoặc >1
-        cond_vec = torch.sigmoid(self.cond_transform(embed_vec))  # shape: (B, code_num)
-        # Tạo vector gating cho từng chiều đặc trưng (giá trị trong [0,1])
-        gate_vec = torch.sigmoid(self.gate_layer(embed_vec))      # shape: (B, code_num)
-        gate_vec = gate_vec.unsqueeze(1)        # shape: (B, 1, code_num) để broadcast theo thời gian
-        # Mở rộng tín hiệu điều kiện theo thời gian với trọng số attention và hệ số scale học được
-        cond_tensor = score.unsqueeze(-1) * cond_vec.unsqueeze(1) * self.scale  # shape: (B, T, code_num)
-        # Kết hợp có kiểm soát giữa tín hiệu gốc và tín hiệu điều kiện qua gating
-        x = x * (1 - gate_vec) + cond_tensor * gate_vec   # shape: (B, T, code_num)
+    def forward(self, x, lens, target_codes):
+        score = self.attention(x, lens)
+        score_tensor = torch.zeros_like(x)
+        score_tensor[torch.arange(len(x)), :, target_codes] = score
+        x = x + score_tensor
+        x = torch.clip(x, max=1)
         return x
