@@ -39,18 +39,20 @@ class GANTrainer:
         # ============================================================
         # BUILD FREQUENCY PER ICD ID
         # ============================================================
-        freq_per_id = [0] * self.generator.code_num
-
+        import numpy as np
+        
+        freq_per_id = np.zeros(self.generator.code_num, dtype=np.int64)
+        
         for patient in train_loader.dataset:
             for visit in patient:
-                for idx, val in enumerate(visit):
-                    if val == 1:
-                        freq_per_id[idx] += 1
-
+                # visit shape = [visit_len, code_num]
+                # Sum theo chiều visit_len -> vector [code_num]
+                freq_per_id += visit.sum(dim=0).cpu().numpy()
+        
+        freq_per_id = freq_per_id.tolist()
+        
         # Boost ICD xuất hiện < 4 lần
         self.sampler = RareBoostSampler(freq_per_id, p_boost=0.2)
-
-        # Gán sampler vào Generator để get_target_codes() sử dụng
         self.generator.sampler = self.sampler
 
 
