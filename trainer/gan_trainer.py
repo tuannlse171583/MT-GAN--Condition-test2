@@ -40,23 +40,33 @@ class GANTrainer:
         # ============================================================
         # BUILD FREQUENCY PER ICD ID
         # ============================================================
-        import numpy as np
+        # ============================================================
+        # BUILD FREQUENCY PER ICD FROM admission_codes.pkl
+        # ============================================================
+        import pickle
+        
+        # Load visit-level code IDs
+        with open("data/mimic3/processed/admission_codes.pkl", "rb") as f:
+            admission_codes = pickle.load(f)
+        
+        freq_per_id = [0] * self.generator.code_num
+        
+        # Count appearance per ICD ID
+        for visit in admission_codes:
+            for code_id in visit:
+                if code_id < self.generator.code_num:
+                    freq_per_id[code_id] += 1
+        
+        # Log rare ICD count
+        rare_count = sum(1 for f in freq_per_id if f < 4)
+        print(f"🔍 ICD xuất hiện < 4 lần: {rare_count} mã")
         
         # ============================================================
-        # BUILD FREQUENCY PER ICD ID
+        # INIT RARE BOOST SAMPLER
         # ============================================================
-        
-        freq_per_id = torch.zeros(self.generator.code_num, dtype=torch.int64, device=self.device)
-        
-        for patient in train_loader.dataset:
-            for visit in patient:
-                freq_per_id += visit.sum(dim=0).to(torch.int64)
-        
-        freq_per_id = freq_per_id.cpu().tolist()
-        
-        # Boost ICD xuất hiện < 4 lần
         self.sampler = RareBoostSampler(freq_per_id, p_boost=0.2)
         self.generator.sampler = self.sampler
+
 
 
 
