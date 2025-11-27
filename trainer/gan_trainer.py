@@ -3,6 +3,7 @@ from .critic_trainer import CriticTrainer
 from datautils.data_sampler import get_train_sampler
 from logger import Logger
 from rare_boost_sampler import RareBoostSampler
+import torch   # <=========== THÊM DÒNG NÀY
 
 
 class GANTrainer:
@@ -41,19 +42,22 @@ class GANTrainer:
         # ============================================================
         import numpy as np
         
-        freq_per_id = np.zeros(self.generator.code_num, dtype=np.int64)
+        # ============================================================
+        # BUILD FREQUENCY PER ICD ID
+        # ============================================================
+        
+        freq_per_id = torch.zeros(self.generator.code_num, dtype=torch.int64, device=self.device)
         
         for patient in train_loader.dataset:
             for visit in patient:
-                # visit shape = [visit_len, code_num]
-                # Sum theo chiều visit_len -> vector [code_num]
-                freq_per_id += visit.sum(dim=0).cpu().numpy()
+                freq_per_id += visit.sum(dim=0).to(torch.int64)
         
-        freq_per_id = freq_per_id.tolist()
+        freq_per_id = freq_per_id.cpu().tolist()
         
         # Boost ICD xuất hiện < 4 lần
         self.sampler = RareBoostSampler(freq_per_id, p_boost=0.2)
         self.generator.sampler = self.sampler
+
 
 
     def train(self):
