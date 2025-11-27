@@ -48,7 +48,7 @@ class GANTrainer:
         # ============================================================
         import pickle
         
-        with open("/kaggle/working/MT-GAN--Condition-test2/data/mimic3/encoded/patient_admission.pkl", "rb") as f:
+        with open("/kaggle/working/MT-GAN--Condition-test2/data/mimic3/encoded/codes_encoded.pkl", "rb") as f:
             codes_encoded = pickle.load(f)
         
         freq_per_id = [0] * self.generator.code_num
