@@ -46,7 +46,7 @@ class GANTrainer:
         import pickle
         
         # Load visit-level code IDs
-        with open("data/mimic3/processed/admission_codes.pkl", "rb") as f:
+        with open("/kaggle/working/MT-GAN--Condition-test2/data/mimic3/parsed/admission_codes.pkl", "rb") as f:
             admission_codes = pickle.load(f)
         
         freq_per_id = [0] * self.generator.code_num
