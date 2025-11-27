@@ -1,3 +1,4 @@
+# model/generator/generator.py
 import torch
 
 from model.base_model import BaseModel
@@ -17,6 +18,9 @@ class Generator(BaseModel):
         self.noise_dim = hidden_dim
         self.gru = GRU(code_num, hidden_dim, max_len, device)
         self.smooth_condition = SmoothCondition(code_num, attention_dim)
+
+        # thêm sampler
+        self.sampler = None
 
     def forward(self, target_codes, lens, noise):
         samples, hiddens = self.gru(noise)
@@ -42,5 +46,6 @@ class Generator(BaseModel):
         return noise
 
     def get_target_codes(self, batch_size):
-        codes = torch.randint(low=0, high=self.code_num, size=(batch_size, ))
-        return codes
+        assert self.sampler is not None, "Sampler chưa được cài đặt!"
+        targets = [self.sampler.sample() for _ in range(batch_size)]
+        return torch.tensor(targets, device=self.device)
