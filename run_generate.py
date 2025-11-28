@@ -41,6 +41,35 @@ def generate(args):
                           device=device).to(device)
     generator.load(params_path, param_file_name)
 
+    # ⭐ THÊM ĐOẠN NÀY ⭐
+    # ============================================================
+    # SETUP SAMPLER (GIỐNG TRAINING)
+    # ============================================================
+    import pickle
+    
+    encoded_path = os.path.join("data", args.dataset, "encoded", "codes_encoded.pkl")
+    if not os.path.exists(encoded_path):
+        encoded_path = f"/kaggle/working/MT-GAN--Condition-test2/data/{args.dataset}/encoded/codes_encoded.pkl"
+    
+    print(f"📥 Loading encoded ICD codes from: {encoded_path}")
+    with open(encoded_path, "rb") as f:
+        codes_encoded = pickle.load(f)
+    
+    freq_per_id = [0] * generator.code_num
+    for adm_id, code_ids in codes_encoded.items():
+        for cid in code_ids:
+            if cid < generator.code_num:
+                freq_per_id[cid] += 1
+    
+    from rare_boost_sampler import RareBoostSampler
+    generator.sampler = RareBoostSampler(freq_per_id, p_boost=0.2)
+    
+    rare_count = sum(1 for f in freq_per_id if f < 4)
+    print(f"🎯 Sampler ready — {rare_count} rare ICD boosted.")
+    # ============================================================
+    # END SAMPLER SETUP
+    # ============================================================
+
     fake_x, fake_lens = generate_ehr(generator, args.number, len_dist, args.batch_size)
 
     """------------------------get statistics------------------------"""
