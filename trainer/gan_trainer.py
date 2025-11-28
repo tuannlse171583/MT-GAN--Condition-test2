@@ -65,7 +65,7 @@ class GANTrainer:
         # ============================================================
         # INIT RARE BOOST SAMPLER
         # ============================================================
-        self.sampler = RareBoostSampler(freq_per_id, p_boost=0.2)
+        self.sampler = RareBoostSampler(freq_per_id, p_boost=0.1)
         self.generator.sampler = self.sampler
 
 
