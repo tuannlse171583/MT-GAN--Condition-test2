@@ -57,7 +57,7 @@ def _parse_generate_setting(parser):
     group = parser.add_argument_group('generate', 'generate setting')
     group.add_argument('--batch_size', default=256, type=int)
     group.add_argument('--use_iteration', default=-1, type=int)
-    group.add_argument('--number', default=1500, type=int)
+    group.add_argument('--number', default=1200, type=int)
     group.add_argument('--upper_bound', default=1e7, type=int)
 
 
