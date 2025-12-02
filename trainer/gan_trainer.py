@@ -60,7 +60,7 @@ class GANTrainer:
                     freq_per_id[code_id] += 1
         
         rare_count = sum(1 for f in freq_per_id if f < 4)
-        print(f"🔍 ICD xuất hiện < 2 lần: {rare_count} mã")
+        print(f"🔍 ICD xuất hiện < 2 lần, p=0.1: {rare_count} mã")
         
         # ============================================================
         # INIT RARE BOOST SAMPLER
