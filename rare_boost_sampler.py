@@ -17,7 +17,7 @@ class RareBoostSampler:
             print("⚠ WARNING: Không có ICD nào xuất hiện < 2 lần!")
             self.boost_group = list(range(self.code_num))
 
-        print(f"🔍 Boost group (ICD < 4 lần): {len(self.boost_group)} mã")
+        print(f"🔍 Boost group (ICD < 4 lần),p=0.1: {len(self.boost_group)} mã")
 
     def sample(self):
         """
