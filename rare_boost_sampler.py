@@ -2,7 +2,7 @@
 import random
 
 class RareBoostSampler:
-    def __init__(self, freq_per_id, p_boost=0.2):
+    def __init__(self, freq_per_id, p_boost=0.1):
         """
         freq_per_id: list[int] – tần suất từng ICD theo ID (mapping từ code2id)
         p_boost: xác suất boost ICD có freq < 4 (default 20%)
