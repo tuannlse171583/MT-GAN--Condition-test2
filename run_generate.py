@@ -41,10 +41,7 @@ def generate(args):
                           device=device).to(device)
     generator.load(params_path, param_file_name)
 
-    # ⭐ THÊM ĐOẠN NÀY ⭐
-    # ============================================================
-    # SETUP SAMPLER (GIỐNG TRAINING)
-    # ============================================================
+
     import pickle
     
     encoded_path = os.path.join("data", args.dataset, "encoded", "codes_encoded.pkl")
@@ -66,9 +63,7 @@ def generate(args):
     
     rare_count = sum(1 for f in freq_per_id if f < 4)
     print(f"🎯 Sampler ready — {rare_count} rare ICD boosted.")
-    # ============================================================
-    # END SAMPLER SETUP
-    # ============================================================
+
 
     fake_x, fake_lens = generate_ehr(generator, args.number, len_dist, args.batch_size)
 
