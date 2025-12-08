@@ -14,7 +14,7 @@ def _parse_base_setting(parser):
 def _parse_preprocess_setting(parser):
     group = parser.add_argument_group('preprocess', 'preprocess settings')
     group.add_argument('--from_saved', action='store_true')
-    group.add_argument('--train_num', default=6000, type=int)
+    group.add_argument('--train_num', default=1500, type=int)
     group.add_argument('--sample_num', default=10000, type=int, help='for mimic4')
 
 
@@ -27,7 +27,7 @@ def _parse_model_structure_setting(parser):
 
 def _parse_gan_training_setting(parser):
     group = parser.add_argument_group('gan_training', 'gan training setting')
-    group.add_argument('--iteration', default=300000, type=int)
+    group.add_argument('--iteration', default=100000, type=int)
     group.add_argument('--batch_size', default=256, type=int)
     group.add_argument('--g_iter', default=1, type=int)
     group.add_argument('--g_lr', default=1e-4, type=float)
@@ -47,7 +47,7 @@ def _parse_gan_training_setting(parser):
 
 def _parse_base_gru_setting(parser):
     group = parser.add_argument_group('base_gru_training', 'base gru training setting')
-    group.add_argument('--base_gru_epochs', default=20, type=int)
+    group.add_argument('--base_gru_epochs', default=200, type=int)
     group.add_argument('--base_gru_lr', default=1e-3, type=float)
 
 
