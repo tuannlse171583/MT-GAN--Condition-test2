@@ -38,6 +38,11 @@ def _parse_gan_training_setting(parser):
     group.add_argument('--lambda_', default=10, type=float)
     group.add_argument('--decay_rate', default=0.1, type=float)
     group.add_argument('--decay_step', default=100000, type=int)
+    group.add_argument('--use_rareboost', action='store_true',
+                   help='Enable RareBoostSampler to boost rare ICD codes during training')
+
+
+
 
 
 def _parse_base_gru_setting(parser):
