@@ -1,4 +1,4 @@
-# rare_boost_sampler.py
+# rare_boost_sampler.py (optional module)
 import random
 
 class RareBoostSampler:
@@ -19,12 +19,7 @@ class RareBoostSampler:
         print(f"🔍 Boost group (ICD < 4 lần),p=0.1: {len(self.boost_group)} mã")
 
     def sample(self):
-        """
-        Trả về target ICD ID:
-        - 80% giữ nguyên uniform sampling như MTGAN gốc
-        - 20% boost nhóm ICD hiếm (freq < 4)
-        """
-        # Sampling gốc của MTGAN
+
         original_target = random.randint(0, self.code_num - 1)
 
         if random.random() < self.p_boost:
