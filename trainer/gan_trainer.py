@@ -45,7 +45,7 @@ class GANTrainer:
         self.generator.sampler = None   
 
         if args.use_rareboost:
-            print("🚀 RareBoostSampler ACTIVATED")
+            print(" RareBoostSampler ACTIVATED")
 
             from rare_boost_sampler import RareBoostSampler
 
@@ -60,12 +60,12 @@ class GANTrainer:
                         freq_per_id[code_id] += 1
 
             rare_count = sum(1 for f in freq_per_id if f < 4)
-            print(f"🔍 Rare ICD (<4 occurrences): {rare_count} boosted codes")
+            print(f" Rare ICD (<4 occurrences): {rare_count} boosted codes")
 
             self.sampler = RareBoostSampler(freq_per_id, p_boost=0.1)
             self.generator.sampler = self.sampler
         else:
-            print("ℹ️ RareBoostSampler DISABLED (default mode)")
+            print(" RareBoostSampler DISABLED (default mode)")
 
 
 
