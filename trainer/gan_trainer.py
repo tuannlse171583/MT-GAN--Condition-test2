@@ -39,20 +39,16 @@ class GANTrainer:
         self.train_sampler = get_train_sampler(train_loader, self.device)
         self.batch_size = train_loader.batch_size
 
-        # ---------------------------------------------------------
-        # ⭐ RAREBOOSTSAMPLER OPTIONAL (only load when flag enabled)
-        # ---------------------------------------------------------
+
 
         self.sampler = None
-        self.generator.sampler = None   # default: no sampler
+        self.generator.sampler = None   
 
         if args.use_rareboost:
             print("🚀 RareBoostSampler ACTIVATED")
 
-            # import inside condition
             from rare_boost_sampler import RareBoostSampler
 
-            # load code frequencies
             with open("/kaggle/working/MT-GAN--Condition-test2/data/mimic3/encoded/codes_encoded.pkl", "rb") as f:
                 codes_encoded = pickle.load(f)
 
