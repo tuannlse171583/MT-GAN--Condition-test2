@@ -3,7 +3,9 @@ from .critic_trainer import CriticTrainer
 from datautils.data_sampler import get_train_sampler
 from logger import Logger
 from rare_boost_sampler import RareBoostSampler
-import torch   # <=========== THÊM DÒNG NÀY
+import torch 
+import pickle
+
 
 
 class GANTrainer:
@@ -37,23 +39,13 @@ class GANTrainer:
         self.train_sampler = get_train_sampler(train_loader, self.device)
         self.batch_size = train_loader.batch_size
 
-        # ============================================================
-        # BUILD FREQUENCY PER ICD ID
-        # ============================================================
-        # ============================================================
-        # BUILD FREQUENCY PER ICD FROM admission_codes.pkl
-        # ============================================================
-        # ============================================================
-        # BUILD FREQUENCY PER ICD FROM codes_encoded.pkl
-        # ============================================================
-        import pickle
+
         
         with open("/kaggle/working/MT-GAN--Condition-test2/data/mimic3/encoded/codes_encoded.pkl", "rb") as f:
             codes_encoded = pickle.load(f)
         
         freq_per_id = [0] * self.generator.code_num
         
-        # codes_encoded: { admission_id: [code_id, code_id, ...] }
         for adm_id, code_id_list in codes_encoded.items():
             for code_id in code_id_list:
                 if code_id < self.generator.code_num:
@@ -61,10 +53,7 @@ class GANTrainer:
         
         rare_count = sum(1 for f in freq_per_id if f < 4)
         print(f"🔍 ICD xuất hiện < 2 lần, p=0.1: {rare_count} mã")
-        
-        # ============================================================
-        # INIT RARE BOOST SAMPLER
-        # ============================================================
+
         self.sampler = RareBoostSampler(freq_per_id, p_boost=0.1)
         self.generator.sampler = self.sampler
 
