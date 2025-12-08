@@ -2,10 +2,8 @@ from .generator_trainer import GeneratorTrainer
 from .critic_trainer import CriticTrainer
 from datautils.data_sampler import get_train_sampler
 from logger import Logger
-from rare_boost_sampler import RareBoostSampler
-import torch 
+import torch
 import pickle
-
 
 
 class GANTrainer:
@@ -25,10 +23,12 @@ class GANTrainer:
                                           batch_size=args.batch_size, train_num=args.g_iter,
                                           lr=args.g_lr, betas=(args.betas0, args.betas1),
                                           decay_step=args.decay_step, decay_rate=args.decay_rate)
+
         self.d_trainer = CriticTrainer(critic, generator, base_gru,
                                        batch_size=args.batch_size, train_num=args.c_iter,
                                        lr=args.c_lr, lambda_=args.lambda_, betas=(args.betas0, args.betas1),
                                        decay_step=args.decay_step, decay_rate=args.decay_rate)
+
         self.logger = Logger(records_path, generator, code_map, code_name_map,
                              len_dist, train_loader.size, args.save_batch_size)
 
@@ -39,55 +39,76 @@ class GANTrainer:
         self.train_sampler = get_train_sampler(train_loader, self.device)
         self.batch_size = train_loader.batch_size
 
+        # ---------------------------------------------------------
+        # ⭐ RAREBOOSTSAMPLER OPTIONAL (only load when flag enabled)
+        # ---------------------------------------------------------
 
-        
-        with open("/kaggle/working/MT-GAN--Condition-test2/data/mimic3/encoded/codes_encoded.pkl", "rb") as f:
-            codes_encoded = pickle.load(f)
-        
-        freq_per_id = [0] * self.generator.code_num
-        
-        for adm_id, code_id_list in codes_encoded.items():
-            for code_id in code_id_list:
-                if code_id < self.generator.code_num:
-                    freq_per_id[code_id] += 1
-        
-        rare_count = sum(1 for f in freq_per_id if f < 4)
-        print(f"🔍 ICD xuất hiện < 2 lần, p=0.1: {rare_count} mã")
+        self.sampler = None
+        self.generator.sampler = None   # default: no sampler
 
-        self.sampler = RareBoostSampler(freq_per_id, p_boost=0.1)
-        self.generator.sampler = self.sampler
+        if args.use_rareboost:
+            print("🚀 RareBoostSampler ACTIVATED")
 
+            # import inside condition
+            from rare_boost_sampler import RareBoostSampler
 
+            # load code frequencies
+            with open("/kaggle/working/MT-GAN--Condition-test2/data/mimic3/encoded/codes_encoded.pkl", "rb") as f:
+                codes_encoded = pickle.load(f)
 
+            freq_per_id = [0] * self.generator.code_num
+
+            for adm_id, code_list in codes_encoded.items():
+                for code_id in code_list:
+                    if code_id < self.generator.code_num:
+                        freq_per_id[code_id] += 1
+
+            rare_count = sum(1 for f in freq_per_id if f < 4)
+            print(f"🔍 Rare ICD (<4 occurrences): {rare_count} boosted codes")
+
+            self.sampler = RareBoostSampler(freq_per_id, p_boost=0.1)
+            self.generator.sampler = self.sampler
+        else:
+            print("ℹ️ RareBoostSampler DISABLED (default mode)")
+
+        # ---------------------------------------------------------
+        # END OPTIONAL SAMPLER
+        # ---------------------------------------------------------
 
     def train(self):
         for i in range(1, self.iters + 1):
+
             target_codes = self.generator.get_target_codes(self.batch_size)
+
+            # train_sampler = sampling real visits as usual
             real_data, real_lens = self.train_sampler.sample(target_codes)
 
             d_loss, w_distance = self.d_trainer.step(real_data, real_lens, target_codes)
             g_loss = self.g_trainer.step(target_codes, real_lens)
 
             self.logger.add_train_point(d_loss, g_loss, w_distance)
+
             if i % self.test_freq == 0:
                 test_d_loss = self.d_trainer.evaluate(self.test_loader, self.device)
                 self.logger.add_test_point(test_d_loss)
-                line = '{} / {} iterations: D_Loss -- {:.6f} -- G_Loss -- {:.6f} -- W_dist -- {:.6f} -- Test_D_Loss -- {:6f}' \
-                    .format(i, self.iters, d_loss, g_loss, w_distance, test_d_loss)
-                print('\r' + line)
 
+                line = '{} / {} iterations: D_Loss -- {:.6f} -- G_Loss -- {:.6f} -- W_dist -- {:.6f} -- Test_D_Loss -- {:.6f}'.format(
+                    i, self.iters, d_loss, g_loss, w_distance, test_d_loss)
+
+                print('\r' + line)
                 self.logger.add_log(line)
                 self.logger.plot_train()
                 self.logger.plot_test()
                 self.logger.stat_generation()
+
             else:
-                line = '{} / {} iterations: D_Loss -- {:.6f} -- G_Loss -- {:.6f} -- W_dist -- {:.6f}' \
-                    .format(i, self.iters, d_loss, g_loss, w_distance)
+                line = '{} / {} iterations: D_Loss -- {:.6f} -- G_Loss -- {:.6f} -- W_dist -- {:.6f}'.format(
+                    i, self.iters, d_loss, g_loss, w_distance)
                 print('\r' + line, end='')
 
             if i % self.save_freq == 0:
-                self.generator.save(self.params_path, 'generator.{}.pt'.format(i))
-                self.critic.save(self.params_path, 'critic.{}.pt'.format(i))
+                self.generator.save(self.params_path, f'generator.{i}.pt')
+                self.critic.save(self.params_path, f'critic.{i}.pt')
 
         self.generator.save(self.params_path)
         self.critic.save(self.params_path)
