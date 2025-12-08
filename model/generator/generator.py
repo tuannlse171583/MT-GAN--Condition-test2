@@ -46,6 +46,12 @@ class Generator(BaseModel):
         return noise
 
     def get_target_codes(self, batch_size):
-        assert self.sampler is not None, "Sampler chưa được cài đặt!"
-        targets = [self.sampler.sample() for _ in range(batch_size)]
-        return torch.tensor(targets, device=self.device)
+        if self.sampler is not None:
+            return self.sampler.sample_target(batch_size)
+    
+        device = self.device
+        code_num = self.code_num
+    
+        target = torch.randint(0, 2, (batch_size, code_num), device=device).bool()
+        return target
+
