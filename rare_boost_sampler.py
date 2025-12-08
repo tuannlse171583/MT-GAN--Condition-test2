@@ -10,11 +10,10 @@ class RareBoostSampler:
         self.code_num = len(freq_per_id)
         self.p_boost = p_boost
 
-        # Nhóm ICD xuất hiện < 4 lần
         self.boost_group = [i for i, f in enumerate(freq_per_id) if f < 4]
 
         if len(self.boost_group) == 0:
-            print("⚠ WARNING: Không có ICD nào xuất hiện < 2 lần!")
+            print("⚠ WARNING: Không có ICD nào xuất hiện < 4 lần!")
             self.boost_group = list(range(self.code_num))
 
         print(f"🔍 Boost group (ICD < 4 lần),p=0.1: {len(self.boost_group)} mã")
@@ -28,7 +27,6 @@ class RareBoostSampler:
         # Sampling gốc của MTGAN
         original_target = random.randint(0, self.code_num - 1)
 
-        # Boost ICD hiếm
         if random.random() < self.p_boost:
             return random.choice(self.boost_group)
 
