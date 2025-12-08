@@ -49,9 +49,12 @@ class Generator(BaseModel):
         if self.sampler is not None:
             return self.sampler.sample_target(batch_size)
     
+        # default behavior: randomly pick 1 code id per sample
         device = self.device
         code_num = self.code_num
     
-        target = torch.randint(0, 2, (batch_size, code_num), device=device).bool()
+        # tensor shape = (batch_size,)
+        target = torch.randint(0, code_num, (batch_size,), device=device)
         return target
+
 
