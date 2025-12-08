@@ -67,9 +67,7 @@ class GANTrainer:
         else:
             print("ℹ️ RareBoostSampler DISABLED (default mode)")
 
-        # ---------------------------------------------------------
-        # END OPTIONAL SAMPLER
-        # ---------------------------------------------------------
+
 
     def train(self):
         for i in range(1, self.iters + 1):
